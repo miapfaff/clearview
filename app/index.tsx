@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import {
   Alert,
   AppState,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -21,14 +22,25 @@ export default function Index() {
   >("home");
   const [breaksTakenToday, setBreaksTakenToday] = useState(0);
   const [reminderMinutes, setReminderMinutes] = useState(20);
+  const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [weeklyTrackingEnabled, setWeeklyTrackingEnabled] = useState(false);
+  const [weeklyData, setWeeklyData] = useState<
+    { date: string; screenTime: number; breaks: number; risk: string }[]
+  >([]);
 
   useEffect(() => {
     const loadData = async () => {
       const storedDate = await AsyncStorage.getItem("lastDate");
       const storedSeconds = await AsyncStorage.getItem("totalSeconds");
       const storedBreaks = await AsyncStorage.getItem("breaksTakenToday");
-      const storedReminderMinutes = await AsyncStorage.getItem("reminderMinutes");
+      const storedReminderMinutes =
+        await AsyncStorage.getItem("reminderMinutes");
+      const storedRemindersEnabled =
+        await AsyncStorage.getItem("remindersEnabled");
+      const storedWeeklyTrackingEnabled = await AsyncStorage.getItem(
+        "weeklyTrackingEnabled",
+      );
+      const storedWeeklyData = await AsyncStorage.getItem("weeklyData");
       const currentDate = new Date().toDateString();
       const parsedReminderMinutes = storedReminderMinutes
         ? parseInt(storedReminderMinutes, 10)
@@ -37,14 +49,44 @@ export default function Index() {
         Number.isNaN(parsedReminderMinutes) || parsedReminderMinutes < 5
           ? 20
           : parsedReminderMinutes;
+      const reminderFlag = storedRemindersEnabled === "false" ? false : true;
+      const weeklyTrackingFlag = storedWeeklyTrackingEnabled === "true";
+      const safeWeeklyData = storedWeeklyData
+        ? JSON.parse(storedWeeklyData)
+        : [];
 
       setReminderMinutes(safeReminderMinutes);
-      setCountdown(safeReminderMinutes * 60);
+      setRemindersEnabled(reminderFlag);
+      setWeeklyTrackingEnabled(weeklyTrackingFlag);
+      setWeeklyData(safeWeeklyData);
+      setCountdown(reminderFlag ? safeReminderMinutes * 60 : 0);
 
       if (storedDate === currentDate && storedSeconds) {
         setTotalSeconds(parseInt(storedSeconds, 10));
         setBreaksTakenToday(storedBreaks ? parseInt(storedBreaks, 10) : 0);
       } else {
+        if (weeklyTrackingFlag && storedDate && storedSeconds) {
+          const previousBreaks = storedBreaks ? parseInt(storedBreaks, 10) : 0;
+          const previousRisk = calculateRiskLevel(
+            parseInt(storedSeconds, 10),
+            previousBreaks,
+            safeReminderMinutes,
+          );
+          const nextWeeklyData = [
+            ...safeWeeklyData,
+            {
+              date: storedDate,
+              screenTime: parseInt(storedSeconds, 10),
+              breaks: previousBreaks,
+              risk: previousRisk,
+            },
+          ].slice(-7);
+          setWeeklyData(nextWeeklyData);
+          await AsyncStorage.setItem(
+            "weeklyData",
+            JSON.stringify(nextWeeklyData),
+          );
+        }
         // New day, reset
         setTotalSeconds(0);
         setBreaksTakenToday(0);
@@ -64,6 +106,26 @@ export default function Index() {
       async (nextAppState) => {
         const currentDate = new Date().toDateString();
         if (currentDate !== lastDate) {
+          if (weeklyTrackingEnabled) {
+            const nextWeeklyData = [
+              ...weeklyData,
+              {
+                date: lastDate,
+                screenTime: totalSeconds,
+                breaks: breaksTakenToday,
+                risk: calculateRiskLevel(
+                  totalSeconds,
+                  breaksTakenToday,
+                  reminderMinutes,
+                ),
+              },
+            ].slice(-7);
+            setWeeklyData(nextWeeklyData);
+            await AsyncStorage.setItem(
+              "weeklyData",
+              JSON.stringify(nextWeeklyData),
+            );
+          }
           // New day
           setTotalSeconds(0);
           setBreaksTakenToday(0);
@@ -78,12 +140,19 @@ export default function Index() {
     );
 
     return () => subscription?.remove();
-  }, [lastDate]);
+  }, [
+    lastDate,
+    weeklyTrackingEnabled,
+    weeklyData,
+    totalSeconds,
+    breaksTakenToday,
+    reminderMinutes,
+  ]);
 
   useEffect(() => {
     let interval: number | null = null;
 
-    if (appState === "active") {
+    if (appState === "active" && remindersEnabled) {
       // @ts-ignore
       interval = setInterval(async () => {
         const currentDate = new Date().toDateString();
@@ -108,14 +177,15 @@ export default function Index() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [appState, lastDate]);
+  }, [appState, lastDate, remindersEnabled]);
 
   useEffect(() => {
+    if (!remindersEnabled) return;
     const interval = setInterval(() => {
       setCountdown((prev) => (prev > 0 ? prev - 1 : reminderMinutes * 60));
     }, 1000);
     return () => clearInterval(interval);
-  }, [reminderMinutes]);
+  }, [reminderMinutes, remindersEnabled]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -123,11 +193,30 @@ export default function Index() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const calculateRiskLevel = (
+    screenTime: number,
+    breaks: number,
+    reminderInterval: number,
+  ) => {
+    if (screenTime === 0) return "Low";
+    const expectedBreaks = Math.max(
+      1,
+      Math.floor(screenTime / (reminderInterval * 60)),
+    );
+    const ratio = breaks / expectedBreaks;
+
+    if (screenTime < 3600 && ratio >= 0.8) return "Low";
+    if (screenTime < 10800 && ratio >= 0.5) return "Moderate";
+    return "High";
+  };
+
   const hours = Math.floor(totalSeconds / 3600);
   const mins = Math.floor((totalSeconds % 3600) / 60);
 
   const handleTakeBreak = () => {
-    setCountdown(reminderMinutes * 60);
+    if (remindersEnabled) {
+      setCountdown(reminderMinutes * 60);
+    }
     setBreaksTakenToday((prev) => {
       const updatedBreaks = prev + 1;
       AsyncStorage.setItem("breaksTakenToday", updatedBreaks.toString());
@@ -135,14 +224,13 @@ export default function Index() {
     });
   };
 
-  const expectedBreaks = Math.max(1, Math.floor(totalSeconds / (reminderMinutes * 60)));
-  const breakCompletionRatio = breaksTakenToday / expectedBreaks;
+  const expectedBreaks = Math.max(
+    1,
+    Math.floor(totalSeconds / (reminderMinutes * 60)),
+  );
 
-  const getEyeStrainRiskLevel = () => {
-    if (totalSeconds < 3600 && breakCompletionRatio >= 0.8) return "Low";
-    if (totalSeconds < 10800 && breakCompletionRatio >= 0.5) return "Moderate";
-    return "High";
-  };
+  const getEyeStrainRiskLevel = () =>
+    calculateRiskLevel(totalSeconds, breaksTakenToday, reminderMinutes);
 
   const eyeStrainRisk = getEyeStrainRiskLevel();
   const riskColor =
@@ -152,13 +240,69 @@ export default function Index() {
         ? "#B26A00"
         : "#C62828";
 
-        const updateReminderMinutes = (nextValue: number) => {
-          const boundedValue = Math.max(5, Math.min(60, nextValue));
-          setReminderMinutes(boundedValue);
-          setCountdown(boundedValue * 60);
-          AsyncStorage.setItem("reminderMinutes", boundedValue.toString());
-          Alert.alert("Reminder Updated", `Break reminder is now every ${boundedValue} minutes.`);
-        };
+  const updateReminderMinutes = (nextValue: number) => {
+    const boundedValue = Math.max(5, Math.min(60, nextValue));
+    setReminderMinutes(boundedValue);
+    setCountdown(boundedValue * 60);
+    setRemindersEnabled(true);
+    AsyncStorage.setItem("reminderMinutes", boundedValue.toString());
+    AsyncStorage.setItem("remindersEnabled", "true");
+    Alert.alert(
+      "Reminder Updated",
+      `Break reminder is now every ${boundedValue} minutes.`,
+    );
+  };
+
+  const toggleWeeklyTracking = async (enabled: boolean) => {
+    setWeeklyTrackingEnabled(enabled);
+    await AsyncStorage.setItem(
+      "weeklyTrackingEnabled",
+      JSON.stringify(enabled),
+    );
+  };
+
+  const toggleRemindersEnabled = async (enabled: boolean) => {
+    setRemindersEnabled(enabled);
+    await AsyncStorage.setItem("remindersEnabled", JSON.stringify(enabled));
+    if (enabled) {
+      setCountdown(reminderMinutes * 60);
+    } else {
+      setCountdown(0);
+    }
+  };
+
+  const deleteCurrentReminder = async () => {
+    setRemindersEnabled(false);
+    setReminderMinutes(20);
+    setCountdown(0);
+    await AsyncStorage.removeItem("reminderMinutes");
+    await AsyncStorage.setItem("remindersEnabled", "false");
+    Alert.alert(
+      "Reminder deleted",
+      "Your current break reminder has been removed.",
+    );
+  };
+
+  useEffect(() => {
+    if (!remindersEnabled) {
+      setCountdown(0);
+    }
+  }, [remindersEnabled]);
+
+  const confirmDeleteReminder = () => {
+    Alert.alert(
+      "Delete reminder?",
+      "This will remove your current break reminder schedule.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: deleteCurrentReminder,
+        },
+      ],
+    );
+  };
 
   const clearAllLocalData = () => {
     Alert.alert(
@@ -170,12 +314,18 @@ export default function Index() {
           text: "Clear",
           style: "destructive",
           onPress: async () => {
-            await AsyncStorage.multiRemove([
+            const keysToClear = [
               "lastDate",
               "totalSeconds",
               "breaksTakenToday",
               "reminderMinutes",
-            ]);
+              "remindersEnabled",
+              "weeklyTrackingEnabled",
+              "weeklyData",
+            ];
+            await Promise.all(
+              keysToClear.map((key) => AsyncStorage.removeItem(key)),
+            );
             const currentDate = new Date().toDateString();
             setLastDate(currentDate);
             setTotalSeconds(0);
@@ -194,7 +344,9 @@ export default function Index() {
       <Text style={styles.subtitle}>Reduce eye strain from phone use</Text>
 
       <View style={styles.privacyBanner}>
-        <Text style={styles.privacyBannerTitle}>Privacy-first mode is enabled</Text>
+        <Text style={styles.privacyBannerTitle}>
+          Privacy-first mode is enabled
+        </Text>
         <Text style={styles.privacyBannerText}>
           No account. No location. Your data stays on this device.
         </Text>
@@ -209,11 +361,18 @@ export default function Index() {
 
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>Next Break Reminder</Text>
-        <Text style={styles.timeText}>{formatTime(countdown)}</Text>
-        <Text style={styles.helperText}>
-          Interval: every {reminderMinutes} minutes
+        <Text style={styles.timeText}>
+          {remindersEnabled ? formatTime(countdown) : "Off"}
         </Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={handleTakeBreak}>
+        <Text style={styles.helperText}>
+          {remindersEnabled
+            ? `Interval: every ${reminderMinutes} minutes`
+            : "Break reminders are turned off."}
+        </Text>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={handleTakeBreak}
+        >
           <Text style={styles.primaryButtonText}>Log Break Now</Text>
         </TouchableOpacity>
       </View>
@@ -230,8 +389,23 @@ export default function Index() {
     </View>
   );
 
+  const weeklyTotalSeconds = weeklyData.reduce(
+    (sum, entry) => sum + entry.screenTime,
+    0,
+  );
+  const weeklyTotalBreaks = weeklyData.reduce(
+    (sum, entry) => sum + entry.breaks,
+    0,
+  );
+  const weeklyHours = Math.floor(weeklyTotalSeconds / 3600);
+  const weeklyMins = Math.floor((weeklyTotalSeconds % 3600) / 60);
+  const chartMax = Math.max(
+    ...weeklyData.map((entry) => entry.screenTime / 3600),
+    1,
+  );
+
   const renderStatsTab = () => (
-    <View style={styles.tabContent}>
+    <ScrollView contentContainerStyle={styles.tabContent}>
       <Text style={styles.tabTitle}>Today&apos;s Stats</Text>
       <View style={styles.statBlock}>
         <Text style={styles.statLabel}>Total Screen Time</Text>
@@ -245,9 +419,50 @@ export default function Index() {
       </View>
       <View style={styles.statBlock}>
         <Text style={styles.statLabel}>Eye Strain Risk</Text>
-        <Text style={[styles.statValue, { color: riskColor }]}>{eyeStrainRisk}</Text>
+        <Text style={[styles.statValue, { color: riskColor }]}>
+          {eyeStrainRisk}
+        </Text>
       </View>
-    </View>
+
+      <Text style={[styles.tabTitle, { marginTop: 18 }]}>Weekly Overview</Text>
+      <View style={styles.statBlock}>
+        <Text style={styles.statLabel}>Last 7 Days</Text>
+        <Text style={styles.statValue}>
+          {weeklyHours}h {weeklyMins}m
+        </Text>
+        <Text style={styles.helperText}>
+          {weeklyTotalBreaks} breaks this week
+        </Text>
+      </View>
+
+      {weeklyData.length > 0 ? (
+        <View style={styles.weeklyChartCard}>
+          <View style={styles.weeklyChartRow}>
+            {weeklyData.map((entry) => {
+              const height = Math.max(
+                12,
+                (entry.screenTime / 3600 / chartMax) * 120,
+              );
+              return (
+                <View key={entry.date} style={styles.weeklyBarWrapper}>
+                  <View style={[styles.weeklyBar, { height }]} />
+                  <Text style={styles.weeklyBarLabel}>
+                    {entry.date.slice(0, 3)}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      ) : (
+        <View style={styles.statBlock}>
+          <Text style={styles.helperText}>
+            Enable weekly tracking and use the app daily to build your weekly
+            chart.
+          </Text>
+        </View>
+      )}
+    </ScrollView>
   );
 
   const renderBreaksTab = () => (
@@ -262,7 +477,9 @@ export default function Index() {
       </TouchableOpacity>
       <View style={styles.tipCard}>
         <Text style={styles.tipTitle}>Optional Eye Relief Ideas</Text>
-        <Text style={styles.tipText}>- Look away from screen for 20 seconds</Text>
+        <Text style={styles.tipText}>
+          - Look away from screen for 20 seconds
+        </Text>
         <Text style={styles.tipText}>- Blink slowly 10 times</Text>
         <Text style={styles.tipText}>- Relax shoulders and neck</Text>
       </View>
@@ -281,37 +498,66 @@ export default function Index() {
         </View>
         <ToggleSwitch
           isOn={weeklyTrackingEnabled}
-          onToggle={setWeeklyTrackingEnabled}
+          onToggle={toggleWeeklyTracking}
         />
       </View>
       <View style={styles.settingCard}>
         <Text style={styles.settingTitle}>Display Preset</Text>
         <Text style={styles.settingSubtitle}>Large text and high contrast</Text>
       </View>
-      <View style={styles.settingCard}>
-        <Text style={styles.settingTitle}>Break Reminder</Text>
-        <Text style={styles.settingSubtitle}>Every {reminderMinutes} minutes</Text>
-        <View style={styles.reminderControls}>
-          <TouchableOpacity
-            style={styles.adjustButton}
-            onPress={() => updateReminderMinutes(reminderMinutes - 5)}
-          >
-            <Text style={styles.adjustButtonText}>- 5m</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.adjustButton}
-            onPress={() => updateReminderMinutes(reminderMinutes + 5)}
-          >
-            <Text style={styles.adjustButtonText}>+ 5m</Text>
-          </TouchableOpacity>
+      <View style={styles.settingRow}>
+        <View>
+          <Text style={styles.settingTitle}>Break Reminder</Text>
+          <Text style={styles.settingSubtitle}>
+            {remindersEnabled
+              ? `Every ${reminderMinutes} minutes`
+              : "No reminder is currently active."}
+          </Text>
         </View>
+        <ToggleSwitch
+          isOn={remindersEnabled}
+          onToggle={toggleRemindersEnabled}
+        />
+      </View>
+      <View style={styles.settingCard}>
+        <Text style={styles.settingTitle}>Reminder Schedule</Text>
+        <Text style={styles.settingSubtitle}>
+          {remindersEnabled
+            ? "Adjust your current alarm interval."
+            : "Enable reminders to restore a schedule."}
+        </Text>
+        {remindersEnabled ? (
+          <View style={styles.reminderControls}>
+            <TouchableOpacity
+              style={styles.adjustButton}
+              onPress={() => updateReminderMinutes(reminderMinutes - 5)}
+            >
+              <Text style={styles.adjustButtonText}>- 5m</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.adjustButton}
+              onPress={() => updateReminderMinutes(reminderMinutes + 5)}
+            >
+              <Text style={styles.adjustButtonText}>+ 5m</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+        <TouchableOpacity
+          style={[styles.dangerButton, { marginTop: 14 }]}
+          onPress={confirmDeleteReminder}
+        >
+          <Text style={styles.dangerButtonText}>Delete Reminder</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.settingCard}>
         <Text style={styles.settingTitle}>Privacy</Text>
         <Text style={styles.settingSubtitle}>
           ClearView stores data locally only. Nothing is shared to a server.
         </Text>
-        <TouchableOpacity style={styles.dangerButton} onPress={clearAllLocalData}>
+        <TouchableOpacity
+          style={styles.dangerButton}
+          onPress={clearAllLocalData}
+        >
           <Text style={styles.dangerButtonText}>Clear All Local Data</Text>
         </TouchableOpacity>
       </View>
@@ -330,29 +576,49 @@ export default function Index() {
       <View style={styles.mainContent}>{renderTabContent()}</View>
       <View style={styles.navBar}>
         <TouchableOpacity
-          style={[styles.navButton, activeTab === "home" && styles.navButtonActive]}
+          style={[
+            styles.navButton,
+            activeTab === "home" && styles.navButtonActive,
+          ]}
           onPress={() => setActiveTab("home")}
         >
-          <Text style={[styles.navText, activeTab === "home" && styles.navTextActive]}>
+          <Text
+            style={[
+              styles.navText,
+              activeTab === "home" && styles.navTextActive,
+            ]}
+          >
             Home
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.navButton, activeTab === "stats" && styles.navButtonActive]}
+          style={[
+            styles.navButton,
+            activeTab === "stats" && styles.navButtonActive,
+          ]}
           onPress={() => setActiveTab("stats")}
         >
           <Text
-            style={[styles.navText, activeTab === "stats" && styles.navTextActive]}
+            style={[
+              styles.navText,
+              activeTab === "stats" && styles.navTextActive,
+            ]}
           >
             Stats
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.navButton, activeTab === "breaks" && styles.navButtonActive]}
+          style={[
+            styles.navButton,
+            activeTab === "breaks" && styles.navButtonActive,
+          ]}
           onPress={() => setActiveTab("breaks")}
         >
           <Text
-            style={[styles.navText, activeTab === "breaks" && styles.navTextActive]}
+            style={[
+              styles.navText,
+              activeTab === "breaks" && styles.navTextActive,
+            ]}
           >
             Breaks
           </Text>
@@ -365,7 +631,10 @@ export default function Index() {
           onPress={() => setActiveTab("settings")}
         >
           <Text
-            style={[styles.navText, activeTab === "settings" && styles.navTextActive]}
+            style={[
+              styles.navText,
+              activeTab === "settings" && styles.navTextActive,
+            ]}
           >
             Settings
           </Text>
@@ -542,6 +811,35 @@ const styles = StyleSheet.create({
     marginTop: 10,
     flexDirection: "row",
     gap: 10,
+  },
+  weeklyChartCard: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D6E0F2",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+  },
+  weeklyChartRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: 8,
+    paddingTop: 10,
+  },
+  weeklyBarWrapper: {
+    alignItems: "center",
+    width: 28,
+  },
+  weeklyBar: {
+    width: 28,
+    borderRadius: 8,
+    backgroundColor: "#0E4E9B",
+  },
+  weeklyBarLabel: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#334767",
   },
   adjustButton: {
     backgroundColor: "#E6F0FF",
