@@ -152,12 +152,13 @@ export default function Index() {
         ? "#B26A00"
         : "#C62828";
 
-  const updateReminderMinutes = async (nextValue: number) => {
-    const boundedValue = Math.max(5, Math.min(60, nextValue));
-    setReminderMinutes(boundedValue);
-    setCountdown(boundedValue * 60);
-    await AsyncStorage.setItem("reminderMinutes", boundedValue.toString());
-  };
+        const updateReminderMinutes = (nextValue: number) => {
+          const boundedValue = Math.max(5, Math.min(60, nextValue));
+          setReminderMinutes(boundedValue);
+          setCountdown(boundedValue * 60);
+          AsyncStorage.setItem("reminderMinutes", boundedValue.toString());
+          Alert.alert("Reminder Updated", `Break reminder is now every ${boundedValue} minutes.`);
+        };
 
   const clearAllLocalData = () => {
     Alert.alert(
