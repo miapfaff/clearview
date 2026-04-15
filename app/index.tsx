@@ -4,13 +4,13 @@ import {
   Alert,
   AppState,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import "./App.css";
 import ToggleSwitch from "./ToggleTracking";
+import { styles } from "./indexStyles";
 import { useTheme } from "./reverseContrast";
 
 export default function Index() {
@@ -600,7 +600,7 @@ export default function Index() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>      <View style={styles.mainContent}>{renderTabContent()}</View>
-      <View style={styles.navBar}>
+      <View style={[styles.navBar, { backgroundColor: theme.card }]}>
         <TouchableOpacity
           style={[
             styles.navButton,
@@ -611,6 +611,7 @@ export default function Index() {
           <Text
             style={[
               styles.navText,
+              { color: activeTab === "home" ? theme.accent : theme.subtext },
               activeTab === "home" && styles.navTextActive,
             ]}
           >
@@ -627,6 +628,7 @@ export default function Index() {
           <Text
             style={[
               styles.navText,
+              { color: activeTab === "stats" ? theme.accent : theme.subtext },
               activeTab === "stats" && styles.navTextActive,
             ]}
           >
@@ -643,6 +645,7 @@ export default function Index() {
           <Text
             style={[
               styles.navText,
+              { color: activeTab === "breaks" ? theme.accent : theme.subtext },
               activeTab === "breaks" && styles.navTextActive,
             ]}
           >
@@ -659,6 +662,7 @@ export default function Index() {
           <Text
             style={[
               styles.navText,
+              { color: activeTab === "settings" ? theme.accent : theme.subtext },
               activeTab === "settings" && styles.navTextActive,
             ]}
           >
@@ -670,249 +674,3 @@ export default function Index() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F4F8FF",
-  },
-  mainContent: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 18,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: "bold",
-    color: "#132238",
-  },
-  subtitle: {
-    fontSize: 18,
-    color: "#31435F",
-    marginBottom: 14,
-  },
-  sectionCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#D6E0F2",
-  },
-  privacyBanner: {
-    backgroundColor: "#EAF6EE",
-    borderWidth: 1,
-    borderColor: "#B7DEC2",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-  },
-  privacyBannerTitle: {
-    color: "#1D5E31",
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  privacyBannerText: {
-    color: "#2A6A3D",
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-    color: "#1E2D45",
-  },
-  timeText: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "#0E4E9B",
-  },
-  primaryButton: {
-    backgroundColor: "#0E4E9B",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 10,
-    marginTop: 12,
-    alignSelf: "flex-start",
-  },
-  primaryButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  helperText: {
-    marginTop: 8,
-    color: "#334767",
-    fontSize: 15,
-  },
-  riskText: {
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  tabContent: {
-    flex: 1,
-    justifyContent: "flex-start",
-    paddingTop: 4,
-  },
-  tabTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    marginBottom: 14,
-    color: "#132238",
-  },
-  statBlock: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D6E0F2",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 10,
-  },
-  statLabel: {
-    fontSize: 16,
-    color: "#344763",
-  },
-  statValue: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "#0E4E9B",
-    marginTop: 6,
-  },
-  paragraph: {
-    fontSize: 17,
-    color: "#334767",
-    lineHeight: 24,
-    marginBottom: 14,
-  },
-  tipCard: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D6E0F2",
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 14,
-  },
-  tipTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1E2D45",
-    marginBottom: 8,
-  },
-  tipText: {
-    fontSize: 16,
-    color: "#334767",
-    marginBottom: 4,
-  },
-  settingRow: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D6E0F2",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  settingCard: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D6E0F2",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-  },
-  settingTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1E2D45",
-  },
-  settingSubtitle: {
-    fontSize: 15,
-    color: "#334767",
-    marginTop: 4,
-  },
-  reminderControls: {
-    marginTop: 10,
-    flexDirection: "row",
-    gap: 10,
-  },
-  weeklyChartCard: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D6E0F2",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-  },
-  weeklyChartRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    gap: 8,
-    paddingTop: 10,
-  },
-  weeklyBarWrapper: {
-    alignItems: "center",
-    width: 28,
-  },
-  weeklyBar: {
-    width: 28,
-    borderRadius: 8,
-    backgroundColor: "#0E4E9B",
-  },
-  weeklyBarLabel: {
-    marginTop: 8,
-    fontSize: 12,
-    color: "#334767",
-  },
-  adjustButton: {
-    backgroundColor: "#E6F0FF",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  adjustButtonText: {
-    color: "#0E4E9B",
-    fontWeight: "700",
-  },
-  dangerButton: {
-    marginTop: 12,
-    backgroundColor: "#FEECEC",
-    borderWidth: 1,
-    borderColor: "#F3BABA",
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    alignSelf: "flex-start",
-  },
-  dangerButtonText: {
-    color: "#A61B1B",
-    fontWeight: "700",
-  },
-  navBar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 12,
-    borderTopWidth: 1.5,
-    borderTopColor: "#C8D7EF",
-    backgroundColor: "#FFFFFF",
-  },
-  navButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-  },
-  navButtonActive: {
-    backgroundColor: "#E6F0FF",
-  },
-  navText: {
-    fontSize: 16,
-    color: "#31435F",
-    fontWeight: "600",
-  },
-  navTextActive: {
-    color: "#0E4E9B",
-  },
-});
