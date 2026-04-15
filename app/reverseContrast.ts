@@ -12,7 +12,7 @@ export const lightTheme = {
   
   export const darkTheme = {
     background: "#000000",
-    card: "#121212",
+    card: "#1C1C1E",
     text: "#FFFFFF",
     subtext: "#CCCCCC",
     accent: "#4DA3FF",
