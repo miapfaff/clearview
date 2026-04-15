@@ -1,26 +1,41 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet, TouchableOpacity } from "react-native";
 
-function ToggleSwitch() {
-  const [isOn, setIsOn] = useState<boolean>(false);
+type ToggleSwitchProps = {
+  isOn?: boolean;
+  onToggle?: (nextValue: boolean) => void;
+};
+
+function ToggleSwitch({ isOn, onToggle }: ToggleSwitchProps) {
+  const [internalIsOn, setInternalIsOn] = useState<boolean>(false);
+  const currentIsOn = isOn ?? internalIsOn;
   const knobPosition = useRef(new Animated.Value(0)).current;
 
-  const toggle = () => {
-    const newState = !isOn;
-    setIsOn(newState);
+  useEffect(() => {
     Animated.timing(knobPosition, {
-      toValue: newState ? 26 : 0,
+      toValue: currentIsOn ? 26 : 0,
       duration: 200,
       useNativeDriver: true,
     }).start();
+  }, [currentIsOn, knobPosition]);
+
+  const toggle = () => {
+    const newState = !currentIsOn;
+    if (onToggle) {
+      onToggle(newState);
+    } else {
+      setInternalIsOn(newState);
+    }
   };
 
   return (
     <TouchableOpacity
-      style={[styles.switch, isOn ? styles.on : styles.off]}
+      style={[styles.switch, currentIsOn ? styles.on : styles.off]}
       onPress={toggle}
     >
-      <Animated.View style={[styles.knob, { transform: [{ translateX: knobPosition }] }]} />
+      <Animated.View
+        style={[styles.knob, { transform: [{ translateX: knobPosition }] }]}
+      />
     </TouchableOpacity>
   );
 }
