@@ -11,8 +11,10 @@ import {
 } from "react-native";
 import "./App.css";
 import ToggleSwitch from "./ToggleTracking";
+import { useTheme } from "./reverseContrast";
 
 export default function Index() {
+  const { theme, reverseContrastEnabled, toggleTheme } = useTheme();
   const [totalSeconds, setTotalSeconds] = useState(0);
   const [lastDate, setLastDate] = useState(new Date().toDateString());
   const [appState, setAppState] = useState(AppState.currentState);
@@ -340,8 +342,8 @@ export default function Index() {
 
   const renderHomeTab = () => (
     <View style={styles.tabContent}>
-      <Text style={styles.title}>ClearView</Text>
-      <Text style={styles.subtitle}>Reduce eye strain from phone use</Text>
+      <Text style={[styles.title, { color: theme.text }]}>ClearView</Text>
+      <Text style={[styles.subtitle, { color: theme.subtext }]}>Reduce eye strain from phone use</Text>
 
       <View style={styles.privacyBanner}>
         <Text style={styles.privacyBannerTitle}>
@@ -352,19 +354,19 @@ export default function Index() {
         </Text>
       </View>
 
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Screen Time Today</Text>
-        <Text style={styles.timeText}>
+      <View style={[styles.sectionCard, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Screen Time Today</Text>
+        <Text style={[styles.timeText, { color: theme.tabTitle }]}>
           {hours}h {mins}m
         </Text>
       </View>
 
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Next Break Reminder</Text>
-        <Text style={styles.timeText}>
+      <View style={[styles.sectionCard, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Next Break Reminder</Text>
+        <Text style={[styles.timeText, { color: theme.tabTitle }]}>
           {remindersEnabled ? formatTime(countdown) : "Off"}
         </Text>
-        <Text style={styles.helperText}>
+        <Text style={[styles.helperText, { color: theme.subtext }]}>
           {remindersEnabled
             ? `Interval: every ${reminderMinutes} minutes`
             : "Break reminders are turned off."}
@@ -377,12 +379,12 @@ export default function Index() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Daily Eye Strain Feedback</Text>
+      <View style={[styles.sectionCard, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Daily Eye Strain Feedback</Text>
         <Text style={[styles.riskText, { color: riskColor }]}>
           Risk Level: {eyeStrainRisk}
         </Text>
-        <Text style={styles.helperText}>
+        <Text style={[styles.helperText, { color: theme.subtext }]}>
           Breaks taken: {breaksTakenToday} / {expectedBreaks} expected today
         </Text>
       </View>
@@ -406,31 +408,31 @@ export default function Index() {
 
   const renderStatsTab = () => (
     <ScrollView contentContainerStyle={styles.tabContent}>
-      <Text style={styles.tabTitle}>Today&apos;s Stats</Text>
-      <View style={styles.statBlock}>
-        <Text style={styles.statLabel}>Total Screen Time</Text>
-        <Text style={styles.statValue}>
+      <Text style={[styles.tabTitle, { color: theme.tabTitle }]}>Today&apos;s Stats</Text>
+      <View style={[styles.statBlock, { backgroundColor: theme.card }]}>
+        <Text style={[styles.statLabel, { color: theme.subtext }]}>Total Screen Time</Text>
+        <Text style={[styles.statValue, { color: theme.text }]}>
           {hours}h {mins}m
         </Text>
       </View>
-      <View style={styles.statBlock}>
-        <Text style={styles.statLabel}>Breaks Taken</Text>
-        <Text style={styles.statValue}>{breaksTakenToday}</Text>
+      <View style={[styles.statBlock, { backgroundColor: theme.card }]}>
+        <Text style={[styles.statLabel, { color: theme.subtext }]}>Breaks Taken</Text>
+        <Text style={[styles.statValue, { color: theme.text }]}>{breaksTakenToday}</Text>
       </View>
-      <View style={styles.statBlock}>
-        <Text style={styles.statLabel}>Eye Strain Risk</Text>
+      <View style={[styles.statBlock, { backgroundColor: theme.card }]}>
+        <Text style={[styles.statLabel, { color: theme.subtext }]}>Eye Strain Risk</Text>
         <Text style={[styles.statValue, { color: riskColor }]}>
           {eyeStrainRisk}
         </Text>
       </View>
 
-      <Text style={[styles.tabTitle, { marginTop: 18 }]}>Weekly Overview</Text>
-      <View style={styles.statBlock}>
-        <Text style={styles.statLabel}>Last 7 Days</Text>
-        <Text style={styles.statValue}>
+      <Text style={[styles.tabTitle, { marginTop: 18 }, { color: theme.tabTitle }]}>Weekly Overview</Text>
+      <View style={[styles.statBlock, { backgroundColor: theme.card }]}>
+        <Text style={[styles.statLabel, { color: theme.subtext }]}>Last 7 Days</Text>
+        <Text style={[styles.statValue, { color: theme.text }]}>
           {weeklyHours}h {weeklyMins}m
         </Text>
-        <Text style={styles.helperText}>
+        <Text style={[styles.helperText, { color: theme.subtext }]}>
           {weeklyTotalBreaks} breaks this week
         </Text>
       </View>
@@ -455,8 +457,9 @@ export default function Index() {
           </View>
         </View>
       ) : (
-        <View style={styles.statBlock}>
-          <Text style={styles.helperText}>
+        <View style={[styles.statBlock, { backgroundColor: theme.card }
+        ]}>
+          <Text style={[styles.helperText, { color: theme.subtext }]}>
             Enable weekly tracking and use the app daily to build your weekly
             chart.
           </Text>
@@ -467,8 +470,8 @@ export default function Index() {
 
   const renderBreaksTab = () => (
     <View style={styles.tabContent}>
-      <Text style={styles.tabTitle}>Break Feedback</Text>
-      <Text style={styles.paragraph}>
+      <Text style={[styles.tabTitle, { color: theme.tabTitle }]}>Break Feedback</Text>
+      <Text style={[styles.paragraph, { color: theme.text }]}>
         You have taken {breaksTakenToday} breaks today. Based on your reminder
         setting ({reminderMinutes} min), your goal is {expectedBreaks} breaks.
       </Text>
@@ -488,11 +491,11 @@ export default function Index() {
 
   const renderSettingsTab = () => (
     <View style={styles.tabContent}>
-      <Text style={styles.tabTitle}>Comfort Settings</Text>
-      <View style={styles.settingRow}>
+      <Text style={[styles.tabTitle, { color: theme.tabTitle }]}>Comfort Settings</Text>
+      <View style={[styles.settingRow, { backgroundColor: theme.card }]}>
         <View>
-          <Text style={styles.settingTitle}>Weekly Tracking</Text>
-          <Text style={styles.settingSubtitle}>
+          <Text style={[styles.settingTitle, { color: theme.text }]}>Weekly Tracking</Text>
+          <Text style={[styles.settingSubtitle, { color: theme.subtext }]}>
             Save your screen time and breaks over 7 days.
           </Text>
         </View>
@@ -501,14 +504,26 @@ export default function Index() {
           onToggle={toggleWeeklyTracking}
         />
       </View>
-      <View style={styles.settingCard}>
-        <Text style={styles.settingTitle}>Display Preset</Text>
-        <Text style={styles.settingSubtitle}>Large text and high contrast</Text>
+      <View style={[styles.settingCard, { backgroundColor: theme.card }]}>
+        <Text style={[styles.settingTitle, { color: theme.text }]}>Display Preset</Text>
+        <Text style={[styles.settingSubtitle, { color: theme.subtext }]}>Large text and high contrast</Text>
       </View>
-      <View style={styles.settingRow}>
+      <View style={[styles.settingRow, { backgroundColor: theme.card }]}>
         <View>
-          <Text style={styles.settingTitle}>Break Reminder</Text>
-          <Text style={styles.settingSubtitle}>
+          <Text style={[styles.settingTitle, { color: theme.text }]}>Reverse Contrast</Text>
+          <Text style={[styles.settingSubtitle, { color: theme.subtext }]}>
+            Inverts colors for dark environments.
+          </Text>
+        </View>
+        <ToggleSwitch
+          isOn={reverseContrastEnabled}
+          onToggle={toggleTheme}
+        />
+      </View>
+      <View style={[styles.settingRow, { backgroundColor: theme.card }]}>
+        <View>
+          <Text style={[styles.settingTitle, { color: theme.text }]}>Break Reminder</Text>
+          <Text style={[styles.settingSubtitle, { color: theme.subtext }]}>
             {remindersEnabled
               ? `Every ${reminderMinutes} minutes`
               : "No reminder is currently active."}
@@ -519,9 +534,9 @@ export default function Index() {
           onToggle={toggleRemindersEnabled}
         />
       </View>
-      <View style={styles.settingCard}>
-        <Text style={styles.settingTitle}>Reminder Schedule</Text>
-        <Text style={styles.settingSubtitle}>
+      <View style={[styles.settingCard, { backgroundColor: theme.card }]}>
+        <Text style={[styles.settingTitle, { color: theme.text }]}>Reminder Schedule</Text>
+        <Text style={[styles.settingSubtitle, { color: theme.subtext }]}>
           {remindersEnabled
             ? "Adjust your current alarm interval."
             : "Enable reminders to restore a schedule."}
@@ -549,7 +564,19 @@ export default function Index() {
           <Text style={styles.dangerButtonText}>Delete Reminder</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.settingCard}>
+      <View style={[styles.settingRow, { backgroundColor: theme.card }]}>
+      <View>
+        <Text style={styles.settingTitle}>Reverse Contrast</Text>
+        <Text style={styles.settingSubtitle}>
+          Inverts colors for dark environments.
+        </Text>
+      </View>
+      <ToggleSwitch
+        isOn={reverseContrastEnabled}
+        onToggle={toggleTheme}
+      />
+    </View>
+      <View style={[styles.settingCard, { backgroundColor: theme.card }]}>
         <Text style={styles.settingTitle}>Privacy</Text>
         <Text style={styles.settingSubtitle}>
           ClearView stores data locally only. Nothing is shared to a server.
@@ -572,8 +599,7 @@ export default function Index() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.mainContent}>{renderTabContent()}</View>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>      <View style={styles.mainContent}>{renderTabContent()}</View>
       <View style={styles.navBar}>
         <TouchableOpacity
           style={[
