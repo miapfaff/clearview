@@ -4,9 +4,10 @@ import { Animated, StyleSheet, TouchableOpacity } from "react-native";
 type ToggleSwitchProps = {
   isOn?: boolean;
   onToggle?: (nextValue: boolean) => void;
+  label?: string;
 };
 
-function ToggleSwitch({ isOn, onToggle }: ToggleSwitchProps) {
+function ToggleSwitch({ isOn, onToggle, label }: ToggleSwitchProps) {
   const [internalIsOn, setInternalIsOn] = useState<boolean>(false);
   const currentIsOn = isOn ?? internalIsOn;
   const knobPosition = useRef(new Animated.Value(0)).current;
@@ -32,6 +33,11 @@ function ToggleSwitch({ isOn, onToggle }: ToggleSwitchProps) {
     <TouchableOpacity
       style={[styles.switch, currentIsOn ? styles.on : styles.off]}
       onPress={toggle}
+      accessible={true}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: currentIsOn }}
+      accessibilityLabel={label ?? "Toggle switch"}
+      accessibilityHint={`Double tap to ${currentIsOn ? "turn off" : "turn on"} ${label ?? "setting"}`}
     >
       <Animated.View
         style={[styles.knob, { transform: [{ translateX: knobPosition }] }]}
