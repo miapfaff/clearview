@@ -1,17 +1,19 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import {
+  AccessibilityInfo,
   Alert,
   AppState,
   ScrollView,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import "./App.css";
 import ToggleSwitch from "./ToggleTracking";
 import { styles } from "./indexStyles";
 import { useTheme } from "./reverseContrast";
+
 
 export default function Index() {
   const { theme, reverseContrastEnabled, toggleTheme } = useTheme();
@@ -184,8 +186,14 @@ export default function Index() {
   useEffect(() => {
     if (!remindersEnabled) return;
     const interval = setInterval(() => {
-      setCountdown((prev) => (prev > 0 ? prev - 1 : reminderMinutes * 60));
-    }, 1000);
+      setCountdown((prev) => {
+        if (prev === 1){
+          AccessibilityInfo.announceForAccessibility("Time for a break");
+          return reminderMinutes * 60;
+        }
+        return (prev > 0 ? prev - 1 : reminderMinutes * 60);
+    });
+  }, 1000);
     return () => clearInterval(interval);
   }, [reminderMinutes, remindersEnabled]);
 
@@ -216,6 +224,9 @@ export default function Index() {
   const mins = Math.floor((totalSeconds % 3600) / 60);
 
   const handleTakeBreak = () => {
+    AccessibilityInfo.announceForAccessibility(
+      `Break logged. Next reminder in ${reminderMinutes} minutes`
+    );
     if (remindersEnabled) {
       setCountdown(reminderMinutes * 60);
     }
@@ -249,6 +260,7 @@ export default function Index() {
     setRemindersEnabled(true);
     AsyncStorage.setItem("reminderMinutes", boundedValue.toString());
     AsyncStorage.setItem("remindersEnabled", "true");
+    AccessibilityInfo.announceForAccessibility(`Reminder updated to ${boundedValue} minutes`);
     Alert.alert(
       "Reminder Updated",
       `Break reminder is now every ${boundedValue} minutes.`,
@@ -257,6 +269,13 @@ export default function Index() {
 
   const toggleWeeklyTracking = async (enabled: boolean) => {
     setWeeklyTrackingEnabled(enabled);
+
+    AccessibilityInfo.announceForAccessibility(
+      enabled
+        ? "Weekly tracking enabled"
+        : "Weekly tracking disabled"
+    );
+
     await AsyncStorage.setItem(
       "weeklyTrackingEnabled",
       JSON.stringify(enabled),
@@ -265,6 +284,13 @@ export default function Index() {
 
   const toggleRemindersEnabled = async (enabled: boolean) => {
     setRemindersEnabled(enabled);
+
+    AccessibilityInfo.announceForAccessibility(
+      enabled
+        ? "Break reminders enabled"
+        : "Break reminders disabled"
+    );
+
     await AsyncStorage.setItem("remindersEnabled", JSON.stringify(enabled));
     if (enabled) {
       setCountdown(reminderMinutes * 60);
@@ -277,6 +303,11 @@ export default function Index() {
     setRemindersEnabled(false);
     setReminderMinutes(20);
     setCountdown(0);
+
+    AccessibilityInfo.announceForAccessibility(
+      "Break reminder deleted"
+    );
+
     await AsyncStorage.removeItem("reminderMinutes");
     await AsyncStorage.setItem("remindersEnabled", "false");
     Alert.alert(
@@ -334,6 +365,10 @@ export default function Index() {
             setBreaksTakenToday(0);
             setReminderMinutes(20);
             setCountdown(20 * 60);
+
+            AccessibilityInfo.announceForAccessibility(
+              "All local data has been cleared"
+            );
           },
         },
       ],
@@ -356,14 +391,24 @@ export default function Index() {
 
       <View style={[styles.sectionCard, { backgroundColor: theme.card }]}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Screen Time Today</Text>
-        <Text style={[styles.timeText, { color: theme.tabTitle }]}>
+        <Text style={[styles.timeText, { color: theme.tabTitle }]}
+            accessible={true}
+            accessibilityLabel={`Screen time today is ${hours} hours and ${mins} minutes`}
+        >
           {hours}h {mins}m
         </Text>
       </View>
 
       <View style={[styles.sectionCard, { backgroundColor: theme.card }]}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Next Break Reminder</Text>
-        <Text style={[styles.timeText, { color: theme.tabTitle }]}>
+        <Text style={[styles.timeText, { color: theme.tabTitle }]}
+          accessible={true}
+          accessibilityLabel={
+            remindersEnabled
+              ? `Next break in ${Math.floor(countdown / 60)} minutes and ${countdown % 60} seconds`
+              : "Break reminders are off"
+          }
+        >
           {remindersEnabled ? formatTime(countdown) : "Off"}
         </Text>
         <Text style={[styles.helperText, { color: theme.subtext }]}>
@@ -374,6 +419,10 @@ export default function Index() {
         <TouchableOpacity
           style={styles.primaryButton}
           onPress={handleTakeBreak}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Log break"
+          accessibilityHint="Records that you are taking a break now"
         >
           <Text style={styles.primaryButtonText}>Log Break Now</Text>
         </TouchableOpacity>
@@ -381,7 +430,10 @@ export default function Index() {
 
       <View style={[styles.sectionCard, { backgroundColor: theme.card }]}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Daily Eye Strain Feedback</Text>
-        <Text style={[styles.riskText, { color: riskColor }]}>
+        <Text style={[styles.riskText, { color: riskColor }]}
+          accessibilityRole="text"
+          accessibilityLabel={`Eye strain risk level is ${eyeStrainRisk}`}
+        >
           Risk Level: {eyeStrainRisk}
         </Text>
         <Text style={[styles.helperText, { color: theme.subtext }]}>
@@ -411,7 +463,10 @@ export default function Index() {
       <Text style={[styles.tabTitle, { color: theme.tabTitle }]}>Today&apos;s Stats</Text>
       <View style={[styles.statBlock, { backgroundColor: theme.card }]}>
         <Text style={[styles.statLabel, { color: theme.subtext }]}>Total Screen Time</Text>
-        <Text style={[styles.statValue, { color: theme.text }]}>
+        <Text style={[styles.statValue, { color: theme.text }]}
+          accessible={true}
+          accessibilityLabel={`Total screen time is ${hours} hours and ${mins} minutes`}
+        >
           {hours}h {mins}m
         </Text>
       </View>
@@ -475,8 +530,14 @@ export default function Index() {
         You have taken {breaksTakenToday} breaks today. Based on your reminder
         setting ({reminderMinutes} min), your goal is {expectedBreaks} breaks.
       </Text>
-      <TouchableOpacity style={styles.primaryButton} onPress={handleTakeBreak}>
+      <TouchableOpacity style={styles.primaryButton} onPress={handleTakeBreak}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel="Log Another Break"
+        accessibilityHint="Records that you are taking a break now"
+      >
         <Text style={styles.primaryButtonText}>Log Another Break</Text>
+        
       </TouchableOpacity>
       <View style={styles.tipCard}>
         <Text style={styles.tipTitle}>Optional Eye Relief Ideas</Text>
@@ -502,11 +563,12 @@ export default function Index() {
         <ToggleSwitch
           isOn={weeklyTrackingEnabled}
           onToggle={toggleWeeklyTracking}
+          label="Weekly Tracking"
         />
       </View>
       <View style={[styles.settingCard, { backgroundColor: theme.card }]}>
-        <Text style={[styles.settingTitle, { color: theme.text }]}>Display Preset</Text>
-        <Text style={[styles.settingSubtitle, { color: theme.subtext }]}>Large text and high contrast</Text>
+        <Text style={[styles.settingTitle, { color: theme.text }]}>Font Size</Text>
+        <Text style={[styles.settingSubtitle, { color: theme.subtext }]}>Increase text size for lower sighted individuals.</Text>
       </View>
       <View style={[styles.settingRow, { backgroundColor: theme.card }]}>
         <View>
@@ -518,6 +580,7 @@ export default function Index() {
         <ToggleSwitch
           isOn={reverseContrastEnabled}
           onToggle={toggleTheme}
+          label="Reverse Contrast"
         />
       </View>
       <View style={[styles.settingRow, { backgroundColor: theme.card }]}>
@@ -532,6 +595,7 @@ export default function Index() {
         <ToggleSwitch
           isOn={remindersEnabled}
           onToggle={toggleRemindersEnabled}
+          label="Break Reminders"
         />
       </View>
       <View style={[styles.settingCard, { backgroundColor: theme.card }]}>
@@ -546,12 +610,20 @@ export default function Index() {
             <TouchableOpacity
               style={styles.adjustButton}
               onPress={() => updateReminderMinutes(reminderMinutes - 5)}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Subtract five minutes from break"
+              accessibilityHint="Breaks occur five minutes shorter than before"
             >
               <Text style={styles.adjustButtonText}>- 5m</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.adjustButton}
               onPress={() => updateReminderMinutes(reminderMinutes + 5)}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Add five minutes to break"
+              accessibilityHint="Breaks occur five minutes longer than before"
             >
               <Text style={styles.adjustButtonText}>+ 5m</Text>
             </TouchableOpacity>
@@ -560,11 +632,15 @@ export default function Index() {
         <TouchableOpacity
           style={[styles.dangerButton, { marginTop: 14 }]}
           onPress={confirmDeleteReminder}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Delete Reminder"
+          accessibilityHint="Deletes current break reminder"
         >
           <Text style={styles.dangerButtonText}>Delete Reminder</Text>
         </TouchableOpacity>
       </View>
-      <View style={[styles.settingRow, { backgroundColor: theme.card }]}>
+      {/* <View style={[styles.settingRow, { backgroundColor: theme.card }]}>
       <View>
         <Text style={styles.settingTitle}>Reverse Contrast</Text>
         <Text style={styles.settingSubtitle}>
@@ -574,8 +650,9 @@ export default function Index() {
       <ToggleSwitch
         isOn={reverseContrastEnabled}
         onToggle={toggleTheme}
+        label="Reverse Contrast"
       />
-    </View>
+    </View> */}
       <View style={[styles.settingCard, { backgroundColor: theme.card }]}>
         <Text style={styles.settingTitle}>Privacy</Text>
         <Text style={styles.settingSubtitle}>
@@ -584,6 +661,10 @@ export default function Index() {
         <TouchableOpacity
           style={styles.dangerButton}
           onPress={clearAllLocalData}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Clear All Local Data"
+          accessibilityHint="All local data is deleted"
         >
           <Text style={styles.dangerButtonText}>Clear All Local Data</Text>
         </TouchableOpacity>
@@ -599,7 +680,8 @@ export default function Index() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>      <View style={styles.mainContent}>{renderTabContent()}</View>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>      
+    <View style={styles.mainContent}>{renderTabContent()}</View>
       <View style={[styles.navBar, { backgroundColor: theme.card }]}>
         <TouchableOpacity
           style={[
@@ -607,6 +689,11 @@ export default function Index() {
             activeTab === "home" && styles.navButtonActive,
           ]}
           onPress={() => setActiveTab("home")}
+          accessible={true}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === "home" }}
+          accessibilityLabel="Home"
+          accessibilityHint="Return to home screen"
         >
           <Text
             style={[
@@ -624,6 +711,11 @@ export default function Index() {
             activeTab === "stats" && styles.navButtonActive,
           ]}
           onPress={() => setActiveTab("stats")}
+          accessible={true}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === "stats" }}
+          accessibilityLabel="Stats"
+          accessibilityHint="Go to statistics page"
         >
           <Text
             style={[
@@ -641,6 +733,11 @@ export default function Index() {
             activeTab === "breaks" && styles.navButtonActive,
           ]}
           onPress={() => setActiveTab("breaks")}
+          accessible={true}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === "breaks" }}
+          accessibilityLabel="Breaks"
+          accessibilityHint="Go to breaks page"
         >
           <Text
             style={[
@@ -658,6 +755,11 @@ export default function Index() {
             activeTab === "settings" && styles.navButtonActive,
           ]}
           onPress={() => setActiveTab("settings")}
+          accessible={true}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === "settings" }}
+          accessibilityLabel="Settings"
+          accessibilityHint="Go to settings page"
         >
           <Text
             style={[
