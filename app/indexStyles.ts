@@ -81,9 +81,9 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
   },
   tabContent: {
-    flex: 1,
     justifyContent: "flex-start",
     paddingTop: 4,
+    paddingBottom: 28,
   },
   tabTitle: {
     fontSize: 28,
@@ -133,6 +133,32 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     color: "#334767",
     marginBottom: 4,
+  },
+  filterRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 10,
+  },
+  filterChip: {
+    borderWidth: 1,
+    borderColor: "#BFD0EA",
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: "#F3F7FF",
+  },
+  filterChipActive: {
+    backgroundColor: "#0E4E9B",
+    borderColor: "#0E4E9B",
+  },
+  filterChipText: {
+    color: "#234166",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  filterChipTextActive: {
+    color: "#FFFFFF",
   },
   settingRow: {
     backgroundColor: "#FFFFFF",
