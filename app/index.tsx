@@ -7,13 +7,45 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import "./App.css";
 import ToggleSwitch from "./ToggleTracking";
 import { styles } from "./indexStyles";
 import { useTheme } from "./reverseContrast";
 
+const MICRO_BREAK_LIBRARY = [
+  {
+    category: "Eyes",
+    title: "20-20-20 Reset",
+    duration: "20 sec",
+    instructions: "Look at something 20 feet away for 20 seconds.",
+  },
+  {
+    category: "Eyes",
+    title: "Blink Refresh",
+    duration: "30 sec",
+    instructions: "Blink slowly 10 times to rehydrate your eyes.",
+  },
+  {
+    category: "Neck",
+    title: "Neck Release",
+    duration: "45 sec",
+    instructions: "Gently roll your neck in small circles, both directions.",
+  },
+  {
+    category: "Posture",
+    title: "Shoulder Drop",
+    duration: "30 sec",
+    instructions: "Raise shoulders to ears, hold, then release slowly.",
+  },
+  {
+    category: "Posture",
+    title: "Posture Reset",
+    duration: "40 sec",
+    instructions: "Sit tall, relax jaw, and align ears over shoulders.",
+  },
+];
 
 export default function Index() {
   const { theme, reverseContrastEnabled, toggleTheme } = useTheme();
@@ -28,6 +60,10 @@ export default function Index() {
   const [reminderMinutes, setReminderMinutes] = useState(20);
   const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [weeklyTrackingEnabled, setWeeklyTrackingEnabled] = useState(false);
+  const [microBreakIndex, setMicroBreakIndex] = useState(0);
+  const [microBreakCategoryFilter, setMicroBreakCategoryFilter] = useState<
+    "All" | "Eyes" | "Neck" | "Posture"
+  >("All");
   const [weeklyData, setWeeklyData] = useState<
     { date: string; screenTime: number; breaks: number; risk: string }[]
   >([]);
@@ -235,7 +271,41 @@ export default function Index() {
       AsyncStorage.setItem("breaksTakenToday", updatedBreaks.toString());
       return updatedBreaks;
     });
+    setMicroBreakIndex((prev) => {
+      const list =
+        microBreakCategoryFilter === "All"
+          ? MICRO_BREAK_LIBRARY
+          : MICRO_BREAK_LIBRARY.filter(
+              (microBreak) => microBreak.category === microBreakCategoryFilter,
+            );
+      return (prev + 1) % list.length;
+    });
   };
+
+  const rotateMicroBreak = () => {
+    setMicroBreakIndex((prev) => {
+      const list =
+        microBreakCategoryFilter === "All"
+          ? MICRO_BREAK_LIBRARY
+          : MICRO_BREAK_LIBRARY.filter(
+              (microBreak) => microBreak.category === microBreakCategoryFilter,
+            );
+      return (prev + 1) % list.length;
+    });
+    AccessibilityInfo.announceForAccessibility("Showing another micro-break");
+  };
+
+  const filteredMicroBreaks =
+    microBreakCategoryFilter === "All"
+      ? MICRO_BREAK_LIBRARY
+      : MICRO_BREAK_LIBRARY.filter(
+          (microBreak) => microBreak.category === microBreakCategoryFilter,
+        );
+  const selectedMicroBreak = filteredMicroBreaks[microBreakIndex] ?? filteredMicroBreaks[0];
+
+  useEffect(() => {
+    setMicroBreakIndex(0);
+  }, [microBreakCategoryFilter]);
 
   const expectedBreaks = Math.max(
     1,
@@ -376,7 +446,7 @@ export default function Index() {
   };
 
   const renderHomeTab = () => (
-    <View style={styles.tabContent}>
+    <ScrollView contentContainerStyle={styles.tabContent}>
       <Text style={[styles.title, { color: theme.text }]}>ClearView</Text>
       <Text style={[styles.subtitle, { color: theme.subtext }]}>Reduce eye strain from phone use</Text>
 
@@ -440,7 +510,7 @@ export default function Index() {
           Breaks taken: {breaksTakenToday} / {expectedBreaks} expected today
         </Text>
       </View>
-    </View>
+    </ScrollView>
   );
 
   const weeklyTotalSeconds = weeklyData.reduce(
@@ -524,7 +594,7 @@ export default function Index() {
   );
 
   const renderBreaksTab = () => (
-    <View style={styles.tabContent}>
+    <ScrollView contentContainerStyle={styles.tabContent}>
       <Text style={[styles.tabTitle, { color: theme.tabTitle }]}>Break Feedback</Text>
       <Text style={[styles.paragraph, { color: theme.text }]}>
         You have taken {breaksTakenToday} breaks today. Based on your reminder
@@ -537,8 +607,45 @@ export default function Index() {
         accessibilityHint="Records that you are taking a break now"
       >
         <Text style={styles.primaryButtonText}>Log Another Break</Text>
-        
       </TouchableOpacity>
+      <View style={styles.tipCard}>
+        <Text style={styles.tipTitle}>Micro-Break Library</Text>
+        <View style={styles.filterRow}>
+          {(["All", "Eyes", "Neck", "Posture"] as const).map((category) => (
+            <TouchableOpacity
+              key={category}
+              style={[
+                styles.filterChip,
+                microBreakCategoryFilter === category && styles.filterChipActive,
+              ]}
+              onPress={() => {
+                setMicroBreakCategoryFilter(category);
+                AccessibilityInfo.announceForAccessibility(
+                  `${category} micro-break filter selected`,
+                );
+              }}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  microBreakCategoryFilter === category && styles.filterChipTextActive,
+                ]}
+              >
+                {category}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={styles.tipText}>
+          {selectedMicroBreak.title} ({selectedMicroBreak.duration})
+        </Text>
+        <Text style={[styles.paragraph, { marginBottom: 0 }]}>
+          {selectedMicroBreak.instructions}
+        </Text>
+        <TouchableOpacity style={styles.primaryButton} onPress={rotateMicroBreak}>
+          <Text style={styles.primaryButtonText}>Show Another Micro-Break</Text>
+        </TouchableOpacity>
+      </View>
       <View style={styles.tipCard}>
         <Text style={styles.tipTitle}>Optional Eye Relief Ideas</Text>
         <Text style={styles.tipText}>
@@ -547,11 +654,11 @@ export default function Index() {
         <Text style={styles.tipText}>- Blink slowly 10 times</Text>
         <Text style={styles.tipText}>- Relax shoulders and neck</Text>
       </View>
-    </View>
+    </ScrollView>
   );
 
   const renderSettingsTab = () => (
-    <View style={styles.tabContent}>
+    <ScrollView contentContainerStyle={styles.tabContent}>
       <Text style={[styles.tabTitle, { color: theme.tabTitle }]}>Comfort Settings</Text>
       <View style={[styles.settingRow, { backgroundColor: theme.card }]}>
         <View>
@@ -669,7 +776,7 @@ export default function Index() {
           <Text style={styles.dangerButtonText}>Clear All Local Data</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 
   const renderTabContent = () => {
