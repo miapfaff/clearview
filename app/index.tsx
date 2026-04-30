@@ -493,7 +493,7 @@ export default function Index() {
       </View>
 
       {weeklyData.length > 0 ? (
-        <View style={styles.weeklyChartCard}>
+        <View style={[styles.weeklyChartCard, { backgroundColor: theme.card }]}>
           <View style={styles.weeklyChartRow}>
             {weeklyData.map((entry) => {
               const height = Math.max(
@@ -502,8 +502,8 @@ export default function Index() {
               );
               return (
                 <View key={entry.date} style={styles.weeklyBarWrapper}>
-                  <View style={[styles.weeklyBar, { height }]} />
-                  <Text style={styles.weeklyBarLabel}>
+                  <View style={[styles.weeklyBar, { height }, { backgroundColor: theme.tabTitle }]} />
+                  <Text style={[styles.weeklyBarLabel, { color: theme.tabTitle }]}>
                     {entry.date.slice(0, 3)}
                   </Text>
                 </View>
